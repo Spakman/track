@@ -1,0 +1,57 @@
+#!/usr/bin/env ruby
+require 'optparse'
+require 'rubygems'
+require 'chronic'
+require 'lib/track'
+require 'lib/repeater_day_portion'
+
+options = {}
+OptionParser.new do |opts|
+  opts.banner = "Usage: track [date] [options]"
+
+  opts.on("-h", "--help", "Show this message") do
+    puts opts
+    exit
+  end
+
+  opts.separator ""
+  opts.separator "Mode options:"
+
+  opts.on("-s", "--subject [SUBJECT]", "The subject of the event. This parameter tells track to add a new event.") do |subject|
+    options[:subject] = subject
+    options[:add_event] = true
+  end
+
+  options[:number_of_events] = 5
+  opts.on("-l", "--list [NUMEVENTS]", "List a specified number of events") do |number|
+    options[:number_of_events] = number.to_i
+  end
+
+  opts.separator ""
+  opts.separator "The date parameter can be in many different formats. Examples:"
+  opts.separator "  27/03/2009 13:00  # will have a default duration of one hour unless otherwise specified"
+  opts.separator "  next tuesday      # next Tuesday, 07:00 - 23:00"
+  opts.separator "  this evening      # next Saturday, 18:00 - 22:00"
+  opts.separator "  aug               # 1st August 07:00 to 31st August 23:00 of this year"
+end.parse!
+
+OptionParser.new do |opts|
+  opts.on(ARGV[0], "The date to view or set") do
+    unless ARGV.empty?
+      range = Chronic.parse(ARGV.join(" "), :guess => false)
+      if range.nil?
+        puts "Date argument did not parse correctly."
+        exit 1
+      end
+      options[:start] = range.first
+      options[:end] = range.last
+    end
+  end
+end.parse
+
+track = Track.new("#{ENV['HOME']}/.track/calendar")
+if options[:add_event]
+  track.add_event options
+else
+  track.view_events options
+end
