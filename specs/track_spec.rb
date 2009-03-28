@@ -11,14 +11,14 @@ describe Track, "when adding an event" do
   end
 
   it "should sort the events chronologically" do
-    now = Time.parse(DateTime.new(2009, 03, 27, 10, 39).to_s)
+    now = Time.parse(DateTime.new(2030, 03, 17, 10, 39).to_s)
     track = Track.new("/dev/null")
     add_range(track,Chronic.parse("next saturday", :guess => false, :now => now), now)
     add_range(track, Chronic.parse("next monday", :guess => false, :now => now), now)
     calendar = add_range(track, Chronic.parse("next sunday", :guess => false, :now => now), now)
 
-    calendar.events.first.dtstart.day.should eql(28)
-    calendar.events.last.dtstart.day.should eql(30)
+    calendar.events.first.dtstart.day.should eql(18)
+    calendar.events.last.dtstart.day.should eql(24)
   end
 
   it "should set a default duration if one is not supplied" do
@@ -29,14 +29,17 @@ describe Track, "when adding an event" do
   end
 
   it "should set a real start and end time for events specified for at least one full day" do
+    now = Time.parse(DateTime.new(2030, 03, 17, 10, 39).to_s)
     track = Track.new("/dev/null")
-    calendar = add_range(track, Chronic.parse("next saturday", :guess => false))
+    calendar = add_range(track,Chronic.parse("next saturday", :guess => false, :now => now), now)
     calendar.events.first.dtstart.hour.should eql(7)
     calendar.events.first.dtend.hour.should eql(23)
   end
 
+  it "should set real start and end times even when the clocks change"
+
   it "should remove events that have passed after adding the new one" do
-    now = Time.now + 1
+    now = Time.now + 1 # this is fragile
     track = Track.new("/dev/null")
     add_range(track, now...now)
     calendar = add_range(track, Chronic.parse("next week", :guess => false))
@@ -56,4 +59,5 @@ describe Track, "when adding an event" do
     `wc -l #{calendar}`.should_not equal(0)
     FileUtils.rm(calendar)
   end
+
 end
