@@ -22,9 +22,12 @@ OptionParser.new do |opts|
     options[:add_event] = true
   end
 
-  options[:number_of_events] = 5
-  opts.on("-l", "--list [NUMEVENTS]", "List a specified number of events") do |number|
+  opts.on("-l", "--list [NUMEVENTS]", "List a specified number of events") do |number| 
     options[:number_of_events] = number.to_i
+  end
+
+  opts.on("-d", "--delete", "Delete any events where the start date falls within the date range") do 
+    options[:delete_events] = true
   end
 
   opts.separator ""
@@ -43,15 +46,25 @@ OptionParser.new do |opts|
         puts "Date argument did not parse correctly."
         exit 1
       end
-      options[:start] = range.first
-      options[:end] = range.last
+      start_time = range.first
+      options[:start] = DateTime.new(start_time.year, start_time.month, start_time.day, start_time.hour, start_time.min)
+      end_time = range.last
+      options[:finish] = DateTime.new(end_time.year, end_time.month, end_time.day, end_time.hour, end_time.min)
     end
   end
 end.parse
 
+if options[:add_event] and options[:delete_events]
+  puts "You cannot add an event and delete events at the same time."
+  exit 1
+end
+
 track = Track.new("#{ENV['HOME']}/.track/calendar")
 if options[:add_event]
-  track.add_event options
+  track.add_event(options)
+elsif options[:delete_events]
+  track.delete_events(options[:start], options[:finish])
 else
-  track.view_events options
+  output = track.view_events(options)
+  puts output unless output.empty?
 end

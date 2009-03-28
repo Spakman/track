@@ -3,12 +3,17 @@ require 'chronic'
 require 'time'
 require 'fileutils'
 
-describe Track, "when adding an event" do
 
+module TrackSpecHelpers
   def add_range(track, range, now = nil)
-    options = { :start => range.first, :end => range.last, :guess => false, :now => now }
+    options = { :start => range.first, :finish => range.last, :guess => false, :now => now, :subject => "***#{range.first.to_s}***" }
     return track.add_event(options)
   end
+end
+
+describe Track, "when adding events" do
+
+  include TrackSpecHelpers
 
   it "should sort the events chronologically" do
     now = Time.parse(DateTime.new(2030, 03, 17, 10, 39).to_s)
@@ -60,4 +65,68 @@ describe Track, "when adding an event" do
     FileUtils.rm(calendar)
   end
 
+end
+
+describe Track, "when viewing events" do
+
+  include TrackSpecHelpers
+
+  before :all do
+    @track = Track.new("/dev/null")
+    time = Time.now
+    time = Time.parse(DateTime.new(2030, 03, 17, 10, 39).to_s)
+    10.times do |count|
+      add_range(@track, time...time+1, time)
+      time += 14400
+    end
+  end
+
+  it "should display the next five items if a date range is not supplied" do
+    @track.view_events({ :number_of_events => 5 }).split("\n").length.should eql(5)
+  end
+
+  it "should display each line in the correct format" do
+    @track.view_events({ :number_of_events => 1 }).should match(/^\w{3} \d{2}, \d{2}:\d{2} - \w{3} \d{2}:\d{2}   \*{3}.+\*{3}/)
+  end
+
+  it "should display all of the events for the supplied date range when no limit is specified" do
+    start = DateTime.new(2030, 03, 17, 0, 0)
+    finish = DateTime.new(2030, 03, 18, 0, 0)
+    @track.view_events(:start => start, :finish => finish).split("\n").length.should eql(4)
+  end
+
+  it "should display the maximum specified events for a date range" do
+    start = DateTime.new(2030, 03, 17, 0, 0)
+    finish = DateTime.new(2030, 03, 18, 0, 0)
+    @track.view_events(:number_of_events => 2, :start => start, :finish => finish).split("\n").length.should eql(2)
+  end
+
+  it "should allow finding events by date range" do
+    start = DateTime.new(2030, 03, 17, 0, 0)
+    finish = DateTime.new(2030, 03, 18, 0, 0)
+    events = @track.find_events_by_date(start, finish)
+    events.first.dtstart.day.should eql(17)
+    events.last.dtstart.day.should eql(17)
+  end
+end
+
+describe Track, "when deleting events" do
+  include TrackSpecHelpers
+
+  before :all do
+    @track = Track.new("/dev/null")
+    time = Time.now
+    time = Time.parse(DateTime.new(2030, 03, 17, 10, 39).to_s)
+    10.times do |count|
+      add_range(@track, time...time+1, time)
+      time += 14400
+    end
+  end
+
+  it "should delete all of the events for the supplied date range" do
+    start = DateTime.new(2030, 03, 17, 0, 0)
+    finish = DateTime.new(2030, 03, 18, 0, 0)
+    @track.delete_events(start, finish).should eql(4)
+    @track.view_events(:start => start, :finish => finish).split("\n").length.should eql(0)
+  end
 end

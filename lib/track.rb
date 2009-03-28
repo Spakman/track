@@ -1,4 +1,5 @@
 require 'date'
+require 'time'
 require 'icalendar'
 
 class Track
@@ -12,7 +13,8 @@ class Track
   end
 
   def add_event(options)
-    if options[:start] < Time.now
+    now = Time.now
+    if Time.parse(options[:start].to_s) < now
       raise "You cannot add events in the past"
     end
 
@@ -20,7 +22,7 @@ class Track
     set_default_duration(options)
 
     start = options[:start]
-    finish = options[:end]
+    finish = options[:finish]
     @calendar.event do
       dtstart  DateTime.new(start.year, start.month, start.day, start.hour, start.min)
       dtend    DateTime.new(finish.year, finish.month, finish.day, finish.hour, finish.min)
@@ -35,16 +37,45 @@ class Track
   end
 
   def view_events(options)
-    purge_past_events
-    @calendar.events[0...options[:number_of_events]].each do |event|
-      start_day = event.dtstart.strftime("%a")
-      end_day = event.dtend.strftime("%a")
-      puts "#{start_day} #{event.dtstart.strftime('%d, %H:%M')} - #{end_day} #{event.dtend.strftime('%H:%M')}   #{event.summary}"
+    output = ""
+    if options[:start] and options[:finish]
+      events = find_events_by_date(options[:start], options[:finish])
+    else
+      events = @calendar.events
+    end
+    unless options[:number_of_events].nil?
+      events = events[0...options[:number_of_events]]
+    end
+    events.each do |event|
+      output << output_for_event(event)
     end
     write_to_file
+    return output
+  end
+
+  def delete_events(start, finish)
+    deleted = 0
+    find_events_by_date(start, finish).each do |event|
+      @calendar.events.delete(event)
+      deleted += 1
+    end
+    write_to_file
+    deleted
+  end
+
+  def find_events_by_date(start, finish)
+    @calendar.events.find_all { |event| event.dtstart >= start and event.dtstart <= finish }
   end
 
   protected
+
+  # Returns a string for outputting an event on a single 
+  # line.
+  def output_for_event(event)
+    start_day = event.dtstart.strftime("%a")
+    end_day = event.dtend.strftime("%a")
+    "#{start_day} #{event.dtstart.strftime('%d, %H:%M')} - #{end_day} #{event.dtend.strftime('%H:%M')}   #{event.summary}\n"
+  end
 
   def write_to_file
     File.open(@calendar_file, "w") { |file| file << @calendar.to_ical }
@@ -64,9 +95,9 @@ class Track
   # Chronic will set the start and end times to 00:00, but
   # my day really goes from 07:00 - 23:00.
   def set_real_start_and_end_dates(options)
-    if options[:start].hour == 0 and options[:end].hour == 0
+    if options[:start].hour == 0 and options[:finish].hour == 0
       options[:start] += 25200 # +7 hours
-      options[:end] -= 3600 # -1 hour
+      options[:finish] -= 3600 # -1 hour
     end
   end
 
@@ -77,8 +108,8 @@ class Track
   # Chronic, we'll actually get a range of 1 second when 
   # a single point in time is specified.
   def set_default_duration(options)
-    if options[:start] == options[:end] - 1
-      options[:end] += 3600 # +1 hour
+    if options[:start] == options[:finish] - 1
+      options[:finish] += 3600 # +1 hour
     end
   end
 end
