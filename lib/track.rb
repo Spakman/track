@@ -12,21 +12,17 @@ class Track
     @calendar.product_id = "Track"
   end
 
-  def add_event(start, finish, subject)
-    @start = Time.parse(start.to_s).utc
-    @finish = Time.parse(finish.to_s).utc
-
-    now = Time.now
-    if Time.parse(@start.to_s) < now
+  def add_event(range, subject)
+    if range.first < Time.now
       raise "You cannot add events in the past"
     end
 
-    set_real_start_and_end_dates
-    set_default_duration
+    range = set_real_start_and_end_dates(range)
+    range = set_default_duration(range)
 
     event = Event.new
-    event.start = DateTime.new(@start.year, @start.month, @start.day, @start.hour, @start.min)
-    event.end = DateTime.new(@finish.year, @finish.month, @finish.day, @finish.hour, @finish.min)
+    event.start = DateTime.parse(range.first.to_s)
+    event.end = DateTime.parse(range.last.to_s)
     event.summary = subject
     @calendar.add_event(event)
 
@@ -36,10 +32,10 @@ class Track
     return @calendar
   end
 
-  def view_events(start = nil, finish = nil, number_of_events = nil)
+  def view_events(range = nil, number_of_events = nil)
     output = ""
-    if start and finish
-      events = find_events_by_date(start, finish)
+    if range
+      events = find_events_by_date(range.first, range.last)
     else
       events = @calendar.events
     end
@@ -54,9 +50,9 @@ class Track
     return output
   end
 
-  def delete_events(start, finish)
+  def delete_events(range)
     deleted = 0
-    find_events_by_date(start, finish).each do |event|
+    find_events_by_date(range.first, range.last).each do |event|
       @calendar.events.delete(event)
       deleted += 1
     end
@@ -66,6 +62,8 @@ class Track
   end
 
   def find_events_by_date(start, finish)
+    start = DateTime.new(start.year, start.month, start.day, start.hour, start.min)
+    finish = DateTime.new(finish.year, finish.month, finish.day, finish.hour, finish.min)
     @calendar.events.find_all { |event| event.dtstart >= start and event.dtstart <= finish }
   end
 
@@ -86,19 +84,26 @@ class Track
   end
 
   def purge_past_events
-    time_now = Time.now
-    now = DateTime.new(time_now.year, time_now.month, time_now.day, time_now.hour, time_now.min)
-    @calendar.events.delete_if { |event| event.dtend <= now }
+    now = DateTime.parse(Time.now.to_s)
+    @calendar.events.delete_if { |event| event.dtstart <= now }
   end
 
   # When using full days, like "saturday" or "next week",
   # Chronic will set the start and end times to 00:00, but
   # my day really goes from 07:00 - 23:00.
-  def set_real_start_and_end_dates
-    if @start.hour == 0 and @finish.hour == 0
-      @start += 25200 # +7 hours
-      @finish -= 3600 # -1 hour
+  #
+  # If the end of the event is not in the same TZ as the 
+  # start, we assume that daylight savings changes occur 
+  # in between.
+  def set_real_start_and_end_dates(range)
+    utc_difference = range.last.utc_offset - range.first.utc_offset
+    if utc_difference != 0
+      range = range.first...(range.last - utc_difference)
     end
+    if range.first.hour == 0 and range.last.hour == 0
+      range = (range.first + 25200)...(range.last - 3600)
+    end
+    range
   end
 
   # If we don't have an event duration, set a default of 
@@ -107,9 +112,10 @@ class Track
   # Since we're always requesting a date range from
   # Chronic, we'll actually get a range of 1 second when 
   # a single point in time is specified.
-  def set_default_duration
-    if @start == @finish or @start == (@finish - 1)
-      @finish += 3600
+  def set_default_duration(range)
+    if range.first == range.last or range.first == (range.last - 1)
+      range = range.first...(range.last + 3600)
     end
+    range
   end
 end

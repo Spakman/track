@@ -46,10 +46,7 @@ OptionParser.new do |opts|
         puts "Date argument did not parse correctly."
         exit 1
       end
-      start_time = range.first
-      options[:start] = DateTime.new(start_time.year, start_time.month, start_time.day, start_time.hour, start_time.min)
-      end_time = range.last
-      options[:finish] = DateTime.new(end_time.year, end_time.month, end_time.day, end_time.hour, end_time.min)
+      options[:range] = range
     end
   end
 end.parse
@@ -61,10 +58,10 @@ end
 
 track = Track.new("#{ENV['HOME']}/.track/calendar")
 if options[:add_event]
-  track.add_event(options[:start], options[:finish], options[:subject])
+  track.add_event(options[:range], options[:subject])
 elsif options[:delete_events]
-  track.delete_events(options[:start], options[:finish])
+  track.delete_events(options[:range])
 else
-  output = track.view_events(options[:start], options[:finish], options[:number_of_events])
+  output = track.view_events(options[:range], options[:number_of_events])
   puts output unless output.empty?
 end
