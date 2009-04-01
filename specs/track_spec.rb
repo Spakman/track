@@ -6,8 +6,7 @@ require 'fileutils'
 
 module TrackSpecHelpers
   def add_range(track, range, now = nil)
-    options = { :start => range.first, :finish => range.last, :guess => false, :now => now, :subject => "***#{range.first.to_s}***" }
-    return track.add_event(options)
+    return track.add_event(range.first, range.last, "***#{range.first}***")
   end
 end
 
@@ -27,8 +26,9 @@ describe Track, "when adding events" do
   end
 
   it "should set a default duration if one is not supplied" do
+    now = Time.parse(DateTime.new(2030, 03, 17, 10, 39).to_s)
     track = Track.new("/dev/null")
-    calendar = add_range(track, Chronic.parse("next saturday at 13:00", :guess => false))
+    calendar = add_range(track, Chronic.parse("next saturday at 13:00", :guess => false, :now => now))
     calendar.events.first.dtstart.hour.should eql(13)
     calendar.events.first.dtend.hour.should eql(14)
   end
@@ -37,11 +37,18 @@ describe Track, "when adding events" do
     now = Time.parse(DateTime.new(2030, 03, 17, 10, 39).to_s)
     track = Track.new("/dev/null")
     calendar = add_range(track,Chronic.parse("next saturday", :guess => false, :now => now), now)
+    calendar.events.first.dtstart.year.should eql(2030)
     calendar.events.first.dtstart.hour.should eql(7)
     calendar.events.first.dtend.hour.should eql(23)
   end
 
-  it "should set real start and end times even when the clocks change"
+# it "should set real start and end times even when the clocks change" do
+#   now = Time.parse(DateTime.new(2030, 03, 27, 10, 39).to_s)
+#   track = Track.new("/dev/null")
+#   calendar = add_range(track,Chronic.parse("next monday", :guess => false, :now => now), now)
+#   calendar.events.first.dtstart.hour.should eql(7)
+#   calendar.events.first.dtend.hour.should eql(23)
+# end
 
   it "should remove events that have passed after adding the new one" do
     now = Time.now + 1 # this is fragile
@@ -82,23 +89,23 @@ describe Track, "when viewing events" do
   end
 
   it "should display the next five items if a date range is not supplied" do
-    @track.view_events({ :number_of_events => 5 }).split("\n").length.should eql(5)
+    @track.view_events(nil, nil, 5).split("\n").length.should eql(5)
   end
 
   it "should display each line in the correct format" do
-    @track.view_events({ :number_of_events => 1 }).should match(/^\w{3} \d{2}, \d{2}:\d{2} - \w{3} \d{2}:\d{2}   \*{3}.+\*{3}/)
+    @track.view_events(nil, nil, 5).should match(/^\w{3} \d{2} \w{3} \d{2}:\d{2} - \w{3} \d{2} \w{3} \d{2}:\d{2}   \*{3}.+\*{3}/)
   end
 
   it "should display all of the events for the supplied date range when no limit is specified" do
     start = DateTime.new(2030, 03, 17, 0, 0)
     finish = DateTime.new(2030, 03, 18, 0, 0)
-    @track.view_events(:start => start, :finish => finish).split("\n").length.should eql(4)
+    @track.view_events(start, finish).split("\n").length.should eql(4)
   end
 
   it "should display the maximum specified events for a date range" do
     start = DateTime.new(2030, 03, 17, 0, 0)
     finish = DateTime.new(2030, 03, 18, 0, 0)
-    @track.view_events(:number_of_events => 2, :start => start, :finish => finish).split("\n").length.should eql(2)
+    @track.view_events(start, finish, 2).split("\n").length.should eql(2)
   end
 
   it "should allow finding events by date range" do
@@ -127,6 +134,6 @@ describe Track, "when deleting events" do
     start = DateTime.new(2030, 03, 17, 0, 0)
     finish = DateTime.new(2030, 03, 18, 0, 0)
     @track.delete_events(start, finish).should eql(4)
-    @track.view_events(:start => start, :finish => finish).split("\n").length.should eql(0)
+    @track.view_events(start, finish).split("\n").length.should eql(0)
   end
 end

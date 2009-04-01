@@ -61,10 +61,10 @@ end
 
 track = Track.new("#{ENV['HOME']}/.track/calendar")
 if options[:add_event]
-  track.add_event(options)
+  track.add_event(options[:start], options[:finish], options[:subject])
 elsif options[:delete_events]
   track.delete_events(options[:start], options[:finish])
 else
-  output = track.view_events(options)
+  output = track.view_events(options[:start], options[:finish], options[:number_of_events])
   puts output unless output.empty?
 end
