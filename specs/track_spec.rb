@@ -3,23 +3,14 @@ require 'chronic'
 require 'time'
 require 'fileutils'
 
-
-module TrackSpecHelpers
-  def add_range(track, range, now = nil)
-    return track.add_event(range, "***#{range.first}***")
-  end
-end
-
 describe Track, "when adding events" do
-
-  include TrackSpecHelpers
 
   it "should sort the events chronologically" do
     now = Time.parse(DateTime.new(2030, 03, 17, 10, 39).to_s)
     track = Track.new("/dev/null")
-    add_range(track,Chronic.parse("next saturday", :guess => false, :now => now), now)
-    add_range(track, Chronic.parse("next monday", :guess => false, :now => now), now)
-    calendar = add_range(track, Chronic.parse("next sunday", :guess => false, :now => now), now)
+    track.add_event(Chronic.parse("next saturday", :guess => false, :now => now), "")
+    track.add_event(Chronic.parse("next monday", :guess => false, :now => now), "")
+    calendar = track.add_event(Chronic.parse("next sunday", :guess => false, :now => now), "")
 
     calendar.events.first.dtstart.day.should eql(18)
     calendar.events.last.dtstart.day.should eql(24)
@@ -28,7 +19,7 @@ describe Track, "when adding events" do
   it "should set a default duration if one is not supplied" do
     now = Time.parse(DateTime.new(2030, 03, 17, 10, 39).to_s)
     track = Track.new("/dev/null")
-    calendar = add_range(track, Chronic.parse("next saturday at 13:00", :guess => false, :now => now))
+    calendar = track.add_event(Chronic.parse("next saturday at 13:00", :guess => false, :now => now), "")
     calendar.events.first.dtstart.hour.should eql(13)
     calendar.events.first.dtend.hour.should eql(14)
   end
@@ -36,7 +27,7 @@ describe Track, "when adding events" do
   it "should set a real start and end time for events specified for at least one full day" do
     now = Time.parse("27 Mar 2030 10:39")
     track = Track.new("/dev/null")
-    calendar = add_range(track,Chronic.parse("next saturday", :guess => false, :now => now), now)
+    calendar = track.add_event(Chronic.parse("next saturday", :guess => false, :now => now), "")
     calendar.events.first.dtstart.year.should eql(2030)
     calendar.events.first.dtstart.hour.should eql(7)
     calendar.events.first.dtend.hour.should eql(23)
@@ -45,13 +36,13 @@ describe Track, "when adding events" do
   it "should set real start and end times even when the clocks change" do
     now = Time.parse("27 Mar 2030 10:39")
     track = Track.new("/dev/null")
-    calendar = add_range(track, Chronic.parse("next weekend", :guess => false, :now => now), now)
+    calendar = track.add_event(Chronic.parse("next weekend", :guess => false, :now => now), "")
     calendar.events.first.dtstart.hour.should eql(7)
     calendar.events.first.dtend.hour.should eql(23)
 
     now = Time.parse("25 Oct 2030 10:39")
     track = Track.new("/dev/null")
-    calendar = add_range(track, Chronic.parse("next weekend", :guess => false, :now => now), now)
+    calendar = track.add_event(Chronic.parse("next weekend", :guess => false, :now => now), "")
     calendar.events.first.dtstart.hour.should eql(7)
     calendar.events.first.dtend.hour.should eql(23)
   end
@@ -59,21 +50,20 @@ describe Track, "when adding events" do
   it "should remove events that have passed after adding the new one" do
     now = Time.now + 0.1 # this is very fragile
     track = Track.new("/dev/null")
-    add_range(track, now...now +1)
-    calendar = add_range(track, Chronic.parse("next week", :guess => false))
+    track.add_event(now...now+1, "")
+    calendar = track.add_event(Chronic.parse("next week", :guess => false, :now => now), "")
     calendar.events.length.should eql(1)
   end
 
   it "should raise an exception when trying to add an event in the past" do
-    options = { :date => Chronic.parse("last saturday", :guess => false) }
     track = Track.new("/dev/null")
-    lambda { track.add_event(options) }.should raise_error
+    lambda { track.add_event(Chronic.parse("last saturday", :guess => false), "Not happenin'") }.should raise_error
   end
 
   it "should write to the filesystem" do
     calendar = "#{File.dirname(__FILE__)}/spec_calendar"
     track = Track.new(calendar)
-    add_range(track, Chronic.parse("next week", :guess => false))
+    track.add_event(Chronic.parse("next week", :guess => false), "")
     `wc -l #{calendar}`.should_not equal(0)
     FileUtils.rm(calendar)
   end
@@ -82,14 +72,12 @@ end
 
 describe Track, "when viewing events" do
 
-  include TrackSpecHelpers
-
   before :all do
     @track = Track.new("/dev/null")
     time = Time.now
     time = Time.parse(DateTime.new(2030, 03, 17, 10, 39).to_s)
     10.times do |count|
-      add_range(@track, time...time+1, time)
+      @track.add_event(time...time+1, "***#{time}***")
       time += 14400
     end
   end
@@ -120,14 +108,13 @@ describe Track, "when viewing events" do
 end
 
 describe Track, "when deleting events" do
-  include TrackSpecHelpers
 
   before :all do
     @track = Track.new("/dev/null")
     time = Time.now
     time = Time.parse(DateTime.new(2030, 03, 17, 10, 39).to_s)
     10.times do |count|
-      add_range(@track, time...time+1, time)
+      @track.add_event(time...time+1, "")
       time += 14400
     end
   end
