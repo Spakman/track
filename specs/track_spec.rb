@@ -76,9 +76,10 @@ describe Track, "when viewing events" do
     @track = Track.new("/dev/null")
     time = Time.now
     time = Time.parse(DateTime.new(2030, 03, 17, 10, 39).to_s)
+    calendar = nil
     10.times do |count|
-      @track.add_event(time...time+1, "***#{time}***")
-      time += 14400
+      calendar = @track.add_event(time...time+1, "***#{time}***")
+      time += 28800
     end
   end
 
@@ -90,8 +91,8 @@ describe Track, "when viewing events" do
     @track.view_events(nil, 5).should match(/^\w{3} \d{2} \w{3} \d{2}:\d{2} - \w{3} \d{2} \w{3} \d{2}:\d{2}   \*{3}.+\*{3}/)
   end
 
-  it "should display all of the events for the supplied date range when no limit is specified" do
-    @track.view_events(Time.parse("Mar 17 2030")...Time.parse("Mar 18 2030")).split("\n").length.should eql(4)
+  it "should display all of the events whose start or end dates fall within the supplied date range when no limit is specified" do
+    @track.view_events(Time.parse("Mar 17 2030 10:45")...Time.parse("Mar 18 2030 10:00")).split("\n").length.should eql(3)
   end
 
   it "should display the maximum specified events for a date range" do

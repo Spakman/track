@@ -7,7 +7,7 @@ require 'lib/repeater_day_portion'
 
 options = {}
 OptionParser.new do |opts|
-  opts.banner = "Usage: track [date] [options]"
+  opts.banner = "Usage: track [date range] [options]"
 
   opts.on("-h", "--help", "Show this message") do
     puts opts
@@ -16,6 +16,15 @@ OptionParser.new do |opts|
 
   opts.separator ""
   opts.separator "Mode options:"
+
+  opts.on("-u", "--until [UNTIL]", "Specifies an overriding end date for the date range") do |finish|
+    finish = Chronic.parse(finish, :guess => false)
+    if finish.nil?
+      puts "Until date argument did not parse correctly."
+      exit 1
+    end
+    options[:until] = finish.last
+  end
 
   opts.on("-s", "--subject [SUBJECT]", "The subject of the event. This parameter tells track to add a new event.") do |subject|
     options[:subject] = subject
@@ -46,7 +55,15 @@ OptionParser.new do |opts|
         puts "Date argument did not parse correctly."
         exit 1
       end
-      options[:range] = range
+      if options[:until]
+        if options[:until] < range.first
+          puts "The end date cannot be before the start date."
+          exit 1
+        end
+        options[:range] = range.first...options[:until]
+      else
+        options[:range] = range
+      end
     end
   end
 end.parse

@@ -33,6 +33,11 @@ class Track
   end
 
   def view_events(range = nil, number_of_events = nil)
+    if range
+      range = set_real_start_and_end_dates(range)
+      range = set_default_duration(range)
+    end
+
     output = ""
     if range
       events = find_events_by_date(range.first, range.last)
@@ -61,10 +66,12 @@ class Track
     deleted
   end
 
+  # Returns an array of all events where the start *or* finish date is between both 
+  # the start and finish parameters.
   def find_events_by_date(start, finish)
     start = DateTime.new(start.year, start.month, start.day, start.hour, start.min)
     finish = DateTime.new(finish.year, finish.month, finish.day, finish.hour, finish.min)
-    @calendar.events.find_all { |event| event.dtstart >= start and event.dtstart <= finish }
+    @calendar.events.find_all { |event| (event.dtstart >= start and event.dtstart <= finish) or (event.dtend >= start and event.dtend <= finish) }
   end
 
   protected
