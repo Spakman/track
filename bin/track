@@ -1,4 +1,6 @@
 #!/usr/bin/env ruby
+Dir.chdir("#{File.dirname(__FILE__)}/../")
+
 require 'optparse'
 require 'rubygems'
 require 'chronic'
@@ -41,7 +43,7 @@ OptionParser.new do |opts|
 
   opts.separator ""
   opts.separator "The date parameter can be in many different formats. Examples:"
-  opts.separator "  27/03/2009 13:00  # will have a default duration of one hour unless otherwise specified"
+  opts.separator "  27/03/2009 13:00  # will have a default duration of one hour unless --until is used"
   opts.separator "  next tuesday      # next Tuesday, 07:00 - 23:00"
   opts.separator "  this evening      # next Saturday, 18:00 - 22:00"
   opts.separator "  aug               # 1st August 07:00 to 31st August 23:00 of this year"
@@ -73,7 +75,14 @@ if options[:add_event] and options[:delete_events]
   exit 1
 end
 
-track = Track.new("#{ENV['HOME']}/.track/calendar")
+
+track_dir = "#{ENV['HOME']}/.track"
+
+unless File.exist?(track_dir)
+  Dir.mkdir track_dir
+end
+
+track = Track.new("#{track_dir}/calendar")
 if options[:add_event]
   track.add_event(options[:range], options[:subject])
 elsif options[:delete_events]

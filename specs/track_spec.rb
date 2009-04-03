@@ -95,6 +95,10 @@ describe Track, "when viewing events" do
     @track.view_events(Time.parse("Mar 17 2030 10:45")...Time.parse("Mar 18 2030 10:00")).split("\n").length.should eql(3)
   end
 
+  it "should display all of the events whose start date is before and whose end date is after the specified range" do
+    @track.view_events(Time.parse("Mar 17 2030 19:00")...Time.parse("Mar 17 2030 19:10")).split("\n").length.should eql(1)
+  end
+
   it "should display the maximum specified events for a date range" do
     @track.view_events(Time.parse("Mar 17 2030")...Time.parse("Mar 18 2030"), 2).split("\n").length.should eql(2)
   end

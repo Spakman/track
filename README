@@ -1,2 +1,44 @@
 Track is a simple calendar app for command line junkies with too much to 
 remember.
+
+
+Dependencies
+===
+
+* chronic (gem install chronic)
+* icalendar (gem install icalendar)
+
+
+Usage
+===
+
+The date range parameters can be specified in a number of ways, including fairly natural language. 
+
+Some examples:
+
+Add an event for 07:00 - 23:00 27/03/2019:
+  $ track 27/03/2019 -s "Egg frying competition"
+
+View all events on next Tuesday between 07:00 - 23:00:
+  $ track next tuesday
+
+Delete all events in August (07:00 on the 1st to 23:00 on the 31st):
+  $ track aug -d
+
+Add an event for this evening 18:00 - 22:00
+  $ track this evening -s "Building prototype nuclear reactor"
+
+Add an event for 29/04/2009 18:30 - 19:30 (default one hour duration):
+
+  $ track 29/04/2009 @ 18:30 -s "Creme Egg frying competition"
+
+Add an event for 29/04/2009 19:45 - 21:43:
+
+  $ track 29/04/2009 @ 19:45 -u "29/04/2009 @ 21:43" -s "Two hour jail sentence, hope to escape two minutes early"
+
+
+TODO
+===
+
+* Recurring events
+* Alarms

@@ -71,7 +71,7 @@ class Track
   def find_events_by_date(start, finish)
     start = DateTime.new(start.year, start.month, start.day, start.hour, start.min)
     finish = DateTime.new(finish.year, finish.month, finish.day, finish.hour, finish.min)
-    @calendar.events.find_all { |event| (event.dtstart >= start and event.dtstart <= finish) or (event.dtend >= start and event.dtend <= finish) }
+    @calendar.events.find_all { |event| (event.dtstart >= start and event.dtstart <= finish) or (event.dtend >= start and event.dtend <= finish) or (event.dtstart <= start and event.dtend >= finish) }
   end
 
   protected
